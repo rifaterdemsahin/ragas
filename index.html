@@ -1,1 +1,152 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>RAGAS in the RAG world</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --card: #f7f6f2;
+    --text: #1f1e1c;
+    --text-secondary: #55534d;
+    --border: #dedad0;
+    --gray-50: #F1EFE8; --gray-600: #5F5E5A; --gray-800: #444441;
+    --teal-50: #E1F5EE; --teal-600: #0F6E56; --teal-800: #085041;
+    --purple-50: #EEEDFE; --purple-600: #534AB7; --purple-800: #3C3489;
+    --coral-50: #FAECE7; --coral-600: #993C1D; --coral-800: #712B13;
+    --amber-50: #FAEEDA; --amber-600: #854F0B; --amber-800: #633806;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #17171a; --card: #201f22; --text: #ececec; --text-secondary: #b0aea7; --border: #3a3936;
+      --gray-50: #444441; --gray-600: #B4B2A9; --gray-800: #D3D1C7;
+      --teal-50: #085041; --teal-600: #5DCAA5; --teal-800: #9FE1CB;
+      --purple-50: #3C3489; --purple-600: #AFA9EC; --purple-800: #CECBF6;
+      --coral-50: #712B13; --coral-600: #F0997B; --coral-800: #F5C4B3;
+      --amber-50: #633806; --amber-600: #EF9F27; --amber-800: #FAC775;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #17171a; --card: #201f22; --text: #ececec; --text-secondary: #b0aea7; --border: #3a3936;
+    --gray-50: #444441; --gray-600: #B4B2A9; --gray-800: #D3D1C7;
+    --teal-50: #085041; --teal-600: #5DCAA5; --teal-800: #9FE1CB;
+    --purple-50: #3C3489; --purple-600: #AFA9EC; --purple-800: #CECBF6;
+    --coral-50: #712B13; --coral-600: #F0997B; --coral-800: #F5C4B3;
+    --amber-50: #633806; --amber-600: #EF9F27; --amber-800: #FAC775;
+  }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+    line-height: 1.65;
+    margin: 0;
+    padding: 2.5rem 1.25rem 4rem;
+  }
+  main { max-width: 720px; margin: 0 auto; }
+  h1 { font-size: 1.6rem; font-weight: 600; margin-bottom: 0.25rem; }
+  .subtitle { color: var(--text-secondary); margin-top: 0; margin-bottom: 2rem; font-size: 1rem; }
+  h2 { font-size: 1.15rem; font-weight: 600; margin-top: 2.5rem; margin-bottom: 0.75rem; }
+  p { margin: 0 0 1rem; }
+  .diagram-wrap {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem;
+    margin: 1.5rem 0 2rem;
+    overflow-x: auto;
+  }
+  svg { display: block; width: 100%; height: auto; max-width: 680px; margin: 0 auto; }
+  .metric-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1rem; }
+  .metric-list li {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.9rem 1.1rem;
+  }
+  .metric-list strong { display: block; margin-bottom: 0.25rem; }
+  ul.plain { margin: 0 0 1rem; padding-left: 1.2rem; }
+  ul.plain li { margin-bottom: 0.5rem; }
+  footer { margin-top: 2.5rem; color: var(--text-secondary); font-size: 0.9rem; border-top: 1px solid var(--border); padding-top: 1.25rem; }
+</style>
+</head>
+<body>
+<main>
+  <h1>RAGAS in the RAG world</h1>
+  <p class="subtitle">How an LLM-as-judge evaluation layer fits around a retrieval-augmented generation pipeline.</p>
+
+  <p><strong>RAGAS</strong> ("RAG assessment") is an open-source evaluation framework built specifically for retrieval-augmented generation pipelines. Its core idea is that you don't need a large hand-labeled test set to know whether a RAG system is any good — instead, RAGAS uses an LLM as an automated judge, scoring each answer along several dimensions using only the question, the retrieved context, and the generated answer (plus, optionally, a ground-truth answer for a couple of metrics).</p>
+
+  <div class="diagram-wrap">
+    <svg viewBox="0 0 680 340" role="img" aria-labelledby="diagram-title diagram-desc">
+      <title id="diagram-title">RAGAS evaluation layer in a RAG pipeline</title>
+      <desc id="diagram-desc">A row shows the RAG pipeline: query, retriever, generator, answer. Below, a RAGAS evaluation box takes the context and answer as input and computes four metrics: faithfulness, answer relevancy, context precision, context recall.</desc>
+      <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+      </defs>
+
+      <g><rect x="40" y="30" width="135" height="44" rx="8" fill="var(--gray-50)" stroke="var(--gray-600)" stroke-width="0.5"/><text x="107" y="52" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="var(--gray-800)">Query</text></g>
+      <g><rect x="195" y="30" width="135" height="44" rx="8" fill="var(--teal-50)" stroke="var(--teal-600)" stroke-width="0.5"/><text x="262" y="52" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="var(--teal-800)">Retriever</text></g>
+      <g><rect x="350" y="30" width="135" height="44" rx="8" fill="var(--purple-50)" stroke="var(--purple-600)" stroke-width="0.5"/><text x="417" y="52" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="var(--purple-800)">Generator</text></g>
+      <g><rect x="505" y="30" width="135" height="44" rx="8" fill="var(--gray-50)" stroke="var(--gray-600)" stroke-width="0.5"/><text x="572" y="52" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="var(--gray-800)">Answer</text></g>
+
+      <line x1="175" y1="52" x2="195" y2="52" stroke="var(--text-secondary)" stroke-width="1.5" marker-end="url(#arrow)"/>
+      <line x1="330" y1="52" x2="350" y2="52" stroke="var(--text-secondary)" stroke-width="1.5" marker-end="url(#arrow)"/>
+      <line x1="485" y1="52" x2="505" y2="52" stroke="var(--text-secondary)" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+      <line x1="262" y1="74" x2="262" y2="140" stroke="var(--text-secondary)" stroke-width="1.5" marker-end="url(#arrow)"/>
+      <text x="270" y="112" font-size="12" fill="var(--text-secondary)">context</text>
+      <line x1="572" y1="74" x2="572" y2="140" stroke="var(--text-secondary)" stroke-width="1.5" marker-end="url(#arrow)"/>
+      <text x="480" y="112" text-anchor="end" font-size="12" fill="var(--text-secondary)">answer</text>
+
+      <g>
+        <rect x="40" y="140" width="600" height="150" rx="20" fill="var(--coral-50)" stroke="var(--coral-600)" stroke-width="0.5"/>
+        <text x="60" y="162" font-size="14" font-weight="500" fill="var(--coral-800)">RAGAS evaluation</text>
+      </g>
+
+      <g><rect x="60" y="178" width="270" height="36" rx="8" fill="var(--amber-50)" stroke="var(--amber-600)" stroke-width="0.5"/><text x="195" y="196" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="var(--amber-800)">Faithfulness</text></g>
+      <g><rect x="350" y="178" width="270" height="36" rx="8" fill="var(--amber-50)" stroke="var(--amber-600)" stroke-width="0.5"/><text x="485" y="196" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="var(--amber-800)">Answer relevancy</text></g>
+      <g><rect x="60" y="222" width="270" height="36" rx="8" fill="var(--amber-50)" stroke="var(--amber-600)" stroke-width="0.5"/><text x="195" y="240" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="var(--amber-800)">Context precision</text></g>
+      <g><rect x="350" y="222" width="270" height="36" rx="8" fill="var(--amber-50)" stroke="var(--amber-600)" stroke-width="0.5"/><text x="485" y="240" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="var(--amber-800)">Context recall</text></g>
+    </svg>
+  </div>
+
+  <h2>How it fits together</h2>
+  <ul class="plain">
+    <li><strong>Retriever</strong> pulls chunks from a vector store based on the query. <strong>Generator</strong> (the LLM) turns query + retrieved context into an answer. That's the ordinary RAG pipeline.</li>
+    <li><strong>RAGAS</strong> sits alongside it, taking the context and the answer as inputs (plus the original query) and running them through an LLM judge to compute scores — no ground-truth labels required for most of them.</li>
+  </ul>
+
+  <h2>The four core metrics</h2>
+  <ul class="metric-list">
+    <li>
+      <strong>Faithfulness</strong>
+      Does the answer actually stick to what's in the retrieved context, or does it hallucinate claims the context doesn't support? RAGAS breaks the answer into individual claims and checks each one against the context.
+    </li>
+    <li>
+      <strong>Answer relevancy</strong>
+      Does the answer actually address the question asked? It works by having an LLM generate several questions the answer could be answering, then measuring how semantically close those are to the original question.
+    </li>
+    <li>
+      <strong>Context precision</strong>
+      Of the chunks that got retrieved, how many were actually useful, and were the useful ones ranked near the top? This catches a retriever that's noisy or badly ordered.
+    </li>
+    <li>
+      <strong>Context recall</strong>
+      Did retrieval pull back everything needed to answer the question? This one does need a reference/ground-truth answer to check against.
+    </li>
+  </ul>
+
+  <footer>
+    In practice, teams run RAGAS as an offline eval suite against a test set whenever they change the retriever, the chunking strategy, the embedding model, or the prompt — a way to catch regressions (like an answer becoming less faithful after a prompt tweak) without manually reading through outputs every time.
+  </footer>
+</main>
+</body>
+</html>
